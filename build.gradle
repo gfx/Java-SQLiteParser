@@ -1,0 +1,43 @@
+group 'com.github.gfx.sqlite_ddl'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'java'
+
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
+
+repositories {
+    jcenter()
+}
+
+final JJ_PACKAGE = 'com.github.gfx.sqlite_ddl.g'
+final JJ_PACKAGE_PATH = JJ_PACKAGE.replaceAll(/\./, '/')
+final JJ_GRAMMAR_FILE = project.file("src/main/javacc/SQLite.jj")
+final JJ_OUTPUT_DIR = "$buildDir/generated/source/javacc"
+
+configurations {
+    javacc
+}
+
+sourceSets.main.java.srcDir JJ_OUTPUT_DIR
+
+task generateParserSources(type: JavaExec) {
+    description = 'Generate SQLiteParser sources with JavaCC'
+    main = 'org.javacc.parser.Main'
+
+    // See https://javacc.java.net/doc/commandline.html
+    args = ["-JDK_VERSION=1.6", "-OUTPUT_DIRECTORY=$JJ_OUTPUT_DIR/$JJ_PACKAGE_PATH", JJ_GRAMMAR_FILE]
+    classpath = configurations.javacc
+
+    // inputs and outputs are necessary for incremental build in ad-hoc task
+    // https://docs.gradle.org/current/userguide/more_about_tasks.html#sec:task_input_output_runtime_api
+    inputs.files JJ_GRAMMAR_FILE
+    outputs.dir "$JJ_OUTPUT_DIR/$JJ_PACKAGE_PATH"
+}
+
+tasks.compileJava.dependsOn(generateParserSources)
+
+dependencies {
+    javacc 'net.java.dev.javacc:javacc:7.0.0'
+    testCompile 'junit:junit:4.12'
+}

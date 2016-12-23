@@ -1,0 +1,28 @@
+// SQLite.jj - SQLite DDL grammar processed by JavaCC 7.0
+
+options {
+    IGNORE_CASE = true;
+    STATIC = false;
+	DEBUG_PARSER = false;
+    DEBUG_LOOKAHEAD = false;
+    DEBUG_TOKEN_MANAGER = false;
+    UNICODE_INPUT = true;
+}
+
+PARSER_BEGIN (SQLiteParser)
+
+package com.github.gfx.sqlite_ddl.g;
+
+public class SQLiteParser {
+}
+
+PARSER_END (SQLiteParser)
+
+SKIP:
+{
+    <WHITESPACE: " " | "\t" | "\r" | "\n">
+}
+
+void CreateStatement(): {} {
+	"CREATE TABLE foo (id INTEGER PRIMARY KEY)"
+}
