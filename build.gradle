@@ -22,12 +22,12 @@ configurations {
 sourceSets.main.java.srcDir JJ_OUTPUT_DIR
 
 task generateParserSources(type: JavaExec) {
-    description = 'Generate SQLiteParser sources with JavaCC'
-    main = 'org.javacc.parser.Main'
+    description 'Generate SQLiteParser sources with JavaCC'
+    main 'org.javacc.parser.Main'
 
     // See https://javacc.java.net/doc/commandline.html
-    args = ["-JDK_VERSION=1.6", "-OUTPUT_DIRECTORY=$JJ_OUTPUT_DIR/$JJ_PACKAGE_PATH", JJ_GRAMMAR_FILE]
-    classpath = configurations.javacc
+    args "-JDK_VERSION=1.6", "-OUTPUT_DIRECTORY=$JJ_OUTPUT_DIR/$JJ_PACKAGE_PATH", JJ_GRAMMAR_FILE.path
+    classpath configurations.javacc
 
     // inputs and outputs are necessary for incremental build in ad-hoc task
     // https://docs.gradle.org/current/userguide/more_about_tasks.html#sec:task_input_output_runtime_api
