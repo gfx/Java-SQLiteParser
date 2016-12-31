@@ -15,8 +15,8 @@ public class SQLiteColumn extends SQLiteComponent {
         return name;
     }
 
-    public void setName(Name name) {
-        this.name = name;
+    public void setName(String name) {
+        this.name = new Name(name);
     }
 
     public String getType() {

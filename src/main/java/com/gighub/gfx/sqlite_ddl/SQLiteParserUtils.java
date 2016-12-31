@@ -10,7 +10,7 @@ public class SQLiteParserUtils {
         SQLiteParser parser = new SQLiteParser(new StringReader(sql));
 
         try {
-            parser.CreateStatement();
+            parser.program();
         } catch (ParseException e) {
             throw new SQLiteParserException(e);
         }

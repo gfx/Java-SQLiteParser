@@ -3,6 +3,7 @@
 // see also https://github.com/gfx/Android-Orma/blob/master/migration/src/main/antlr/SQLite.g4
 
 options {
+    LOOKAHEAD = 2;
     IGNORE_CASE = true;
     STATIC = false;
 	DEBUG_PARSER = false;
@@ -20,7 +21,6 @@ import com.gighub.gfx.sqlite_ddl.*;
 
 import java.util.*;
 
-@SuppressWarnings("unused")
 public class SQLiteParser {
     final List<Exception> parseErrors = new ArrayList<Exception>();
 }
@@ -220,24 +220,85 @@ TOKEN:
              | ("["  (~["\n","\r","]"])+           "]") >
 }
 
-// Syntax
+void program(): {
+}
+{
+    createStatement()
+}
 
-void CreateStatement(): {
+void createStatement(): {
     CreateTableStatement statement = new CreateTableStatement();
     token_source.setComponent(statement);
 
+    SQLiteColumn column;
 } {
-    <K_CREATE> <K_TABLE> token=<IDENTIFIER> { statement.setTableName(token.image); }
+    <K_CREATE> (<K_TEMP> | <K_TEMPORARY>)? <K_TABLE>
+    (<K_IF> <K_NOT> <K_EXISTS>)?
+    (<IDENTIFIER> "." )? {
+        statement.setSchemaName(token.image);
+     }
+    <IDENTIFIER> {
+        statement.setTableName(token.image);
+    }
     "("
-        <IDENTIFIER> "INTEGER PRIMARY KEY"
+        ( column = column() {
+            statement.addColumn(column);
+          }
+         )+
     ")"
 }
 
-SQLiteColumn Column(): {
+SQLiteColumn column(): {
     SQLiteColumn column = new SQLiteColumn();
     token_source.setComponent(column);
 } {
     <IDENTIFIER> {
+        column.setName(token.image);
+    }
+    ( typeName() )?
+    ( columnConstraint() )*
+    {
         return column;
     }
+}
+
+void typeName(): {
+} {
+    <IDENTIFIER>
+    ( "(" <NUMERIC_LITERAL> ("," <NUMERIC_LITERAL>)? ")" )?
+}
+
+void columnConstraint(): {
+}
+{
+    (<K_CONSTRAINT> <IDENTIFIER>)?
+    (     (<K_PRIMARY> <K_KEY> (<K_ASC> | <K_DESC>)? conflictClause() (<K_AUTOINCREMENT>)?)
+        | (<K_NOT>)? <K_NULL> conflictClause()
+        | <K_UNIQUE> conflictClause()
+        //| <K_CHECK> "(" expr() ")"
+        //| <K_DEFAULT> ...
+       | <K_COLLATE> <IDENTIFIER>
+       foreignKeyClause()
+    )
+}
+
+void conflictClause(): {
+}
+{
+    (<K_ON> <K_CONFLICT> (<K_ROLLBACK> | <K_ABORT> | <K_FAIL> | <K_IGNORE> | <K_REPLACE>))?
+}
+
+void foreignKeyClause(): {
+}
+{
+    <K_REFERENCES> <IDENTIFIER> ( "(" <IDENTIFIER> ("," <IDENTIFIER>)* ")" )?
+    (
+        (<K_ON> (<K_DELETE> | <K_UPDATE>)
+            (<K_SET> <K_NULL> | <K_SET> <K_DEFAULT> | <K_CASCADE> | <K_RESTRICT> | <K_NO> <K_ACTION>))
+        |
+        (<K_MATCH> <IDENTIFIER>)
+    )*
+    (
+        (<K_NOT>)? <K_DEFERRABLE> (<K_INITIALLY> (<K_DEFERRED> | <K_IMMEDIATE>)?)?
+    )?
 }

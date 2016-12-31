@@ -6,6 +6,8 @@ import java.util.List;
 
 public class CreateTableStatement extends SQLiteComponent {
 
+    private Name schemaName;
+
     private Name tableName;
 
     private final List<SQLiteColumn> columns = new ArrayList<>();
@@ -18,6 +20,10 @@ public class CreateTableStatement extends SQLiteComponent {
         return tableName;
     }
 
+    public void setSchemaName(String schemaName) {
+        this.schemaName = new Name(schemaName);
+    }
+
     public void setTableName(String tableName) {
         this.tableName = new Name(tableName);
     }
@@ -26,7 +32,7 @@ public class CreateTableStatement extends SQLiteComponent {
         return columns;
     }
 
-    public void addColumns(SQLiteColumn column) {
+    public void addColumn(SQLiteColumn column) {
         this.columns.add(column);
     }
 
