@@ -1,5 +1,8 @@
 package com.gighub.gfx.sqlite_ddl;
 
+import com.github.gfx.sqlite_ddl.g.SQLiteParserConstants;
+import com.github.gfx.sqlite_ddl.g.Token;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -7,6 +10,20 @@ import java.util.Locale;
 public class SQLiteComponent {
 
     protected final List<CharSequence> tokens = new ArrayList<>();
+
+    public void addToken(Token token) {
+        if (isKeyword(token)) {
+            tokens.add(new Keyword(token.image));
+        } else if (token.kind == SQLiteParserConstants.IDENTIFIER) {
+            tokens.add(new Name(token.image));
+        } else {
+            tokens.add(token.image);
+        }
+    }
+
+    private boolean isKeyword(Token token) {
+        return SQLiteParserConstants.tokenImage[token.kind].startsWith("K_");
+    }
 
     public List<CharSequence> getTokens() {
         return tokens;

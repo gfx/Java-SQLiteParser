@@ -9,6 +9,7 @@ options {
     DEBUG_LOOKAHEAD = false;
     DEBUG_TOKEN_MANAGER = false;
     UNICODE_INPUT = true;
+    COMMON_TOKEN_ACTION = true;
 }
 
 PARSER_BEGIN (SQLiteParser)
@@ -19,14 +20,33 @@ import com.gighub.gfx.sqlite_ddl.*;
 
 import java.util.*;
 
-// foo
-
 @SuppressWarnings("unused")
 public class SQLiteParser {
     final List<Exception> parseErrors = new ArrayList<Exception>();
 }
 
 PARSER_END (SQLiteParser)
+
+
+TOKEN_MGR_DECLS:
+{
+    public SQLiteComponent rootComponent;
+
+    public SQLiteComponent currentComponent;
+
+    public void CommonTokenAction(Token token) {
+        if (currentComponent != null) {
+            currentComponent.addToken(token);
+        }
+    }
+
+    public void setComponent(SQLiteComponent component) {
+        if (rootComponent == null) {
+            rootComponent = component;
+        }
+        currentComponent = currentComponent;
+    }
+}
 
 SKIP:
 {
@@ -203,10 +223,21 @@ TOKEN:
 // Syntax
 
 void CreateStatement(): {
-    CreateTableStatement createTableStatement = new CreateTableStatement();
+    CreateTableStatement statement = new CreateTableStatement();
+    token_source.setComponent(statement);
 
 } {
-    <K_CREATE> <K_TABLE> <IDENTIFIER> "("
+    <K_CREATE> <K_TABLE> token=<IDENTIFIER> { statement.setTableName(token.image); }
+    "("
         <IDENTIFIER> "INTEGER PRIMARY KEY"
     ")"
+}
+
+SQLiteColumn Column(): {
+    SQLiteColumn column = new SQLiteColumn();
+    token_source.setComponent(column);
+} {
+    <IDENTIFIER> {
+        return column;
+    }
 }
