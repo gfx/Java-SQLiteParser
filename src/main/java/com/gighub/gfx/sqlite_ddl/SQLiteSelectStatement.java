@@ -1,5 +1,5 @@
 package com.gighub.gfx.sqlite_ddl;
 
-public class SelectStatement extends SQLiteComponent {
+public class SQLiteSelectStatement extends SQLiteStatement {
     // not used in the project
 }

@@ -6,14 +6,23 @@ import com.github.gfx.sqlite_ddl.g.SQLiteParser;
 import java.io.StringReader;
 
 public class SQLiteParserUtils {
-    public static SQLiteComponent parse(String sql) {
+    public static SQLiteStatement parse(String sql) {
         SQLiteParser parser = new SQLiteParser(new StringReader(sql));
 
         try {
-            parser.program();
+            return parser.statement();
         } catch (ParseException e) {
             throw new SQLiteParserException(e);
         }
-        return parser.token_source.rootComponent;
+    }
+
+    public static SQLiteCreateTableStatement parseCreateTableStatement(String sql) {
+        SQLiteParser parser = new SQLiteParser(new StringReader(sql));
+
+        try {
+            return parser.createTableStatement();
+        } catch (ParseException e) {
+            throw new SQLiteParserException(e);
+        }
     }
 }

@@ -3,64 +3,54 @@ package com.gighub.gfx.sqlite_ddl;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SQLiteColumn extends SQLiteComponent {
+public class SQLiteColumn extends SQLiteNode {
 
-    Name name;
+    private static final SQLiteName EMPTY_NAME = new SQLiteSimpleName("[null]");
 
-    String type;
+    private SQLiteName name = EMPTY_NAME;
 
-    List<Constraint> constraints = new ArrayList<>();
+    private SQLiteType type;
 
-    public Name getName() {
+    private final List<SQLiteColumnConstraint> constraints = new ArrayList<>();
+
+    public SQLiteName getName() {
         return name;
     }
 
-    public void setName(String name) {
-        this.name = new Name(name);
+    public void setName(SQLiteName name) {
+        this.name = name;
     }
 
-    public String getType() {
+    public SQLiteType getType() {
         return type;
     }
 
-    public List<Constraint> getConstraints() {
+    public void setType(SQLiteType type) {
+        this.type = type;
+    }
+
+    public List<SQLiteColumnConstraint> getConstraints() {
         return constraints;
+    }
+
+    public void addConstraint(SQLiteColumnConstraint constraint) {
+        this.constraints.add(constraint);
     }
 
     @Override
     public String toString() {
-        StringBuilder columnSpecBuilder = new StringBuilder(name);
+        StringBuilder columnSpecBuilder = new StringBuilder(name.toString());
 
         if (type != null) {
             columnSpecBuilder.append(' ');
             columnSpecBuilder.append(type);
         }
 
-        for (Constraint constraint : constraints) {
+        for (SQLiteColumnConstraint constraint : constraints) {
             columnSpecBuilder.append(' ');
             columnSpecBuilder.append(constraint);
         }
         return columnSpecBuilder.toString();
     }
 
-    public static class Constraint extends SQLiteComponent {
-
-        boolean primaryKey;
-
-        boolean nullable = true;
-
-        String defaultExpr;
-
-        public boolean isPrimaryKey() {
-            return primaryKey;
-        }
-
-        public boolean isNullable() {
-            return !primaryKey && nullable;
-        }
-
-        public String getDefaultExpr() {
-            return defaultExpr;
-        }
-    }
 }

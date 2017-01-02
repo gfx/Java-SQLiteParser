@@ -4,28 +4,22 @@ package com.gighub.gfx.sqlite_ddl;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CreateTableStatement extends SQLiteComponent {
+public class SQLiteCreateTableStatement extends SQLiteStatement {
 
-    private Name schemaName;
-
-    private Name tableName;
+    private SQLiteName tableName;
 
     private final List<SQLiteColumn> columns = new ArrayList<>();
 
     private final List<Constraint> constraints = new ArrayList<>();
 
-    private SelectStatement selectStatement;
+    private SQLiteSelectStatement selectStatement;
 
-    public Name getTableName() {
+    public SQLiteName getTableName() {
         return tableName;
     }
 
-    public void setSchemaName(String schemaName) {
-        this.schemaName = new Name(schemaName);
-    }
-
-    public void setTableName(String tableName) {
-        this.tableName = new Name(tableName);
+    public void setTableName(SQLiteName tableName) {
+        this.tableName = tableName;
     }
 
     public List<SQLiteColumn> getColumns() {
@@ -44,20 +38,16 @@ public class CreateTableStatement extends SQLiteComponent {
         this.constraints.add(constraint);
     }
 
-    public SelectStatement getSelectStatement() {
+    public SQLiteSelectStatement getSelectStatement() {
         return selectStatement;
     }
 
-    public void setSelectStatement(SelectStatement selectStatement) {
+    public void setSelectStatement(SQLiteSelectStatement selectStatement) {
         this.selectStatement = selectStatement;
     }
 
-    public static class Constraint extends SQLiteComponent {
+    public static class Constraint extends SQLiteNode {
 
-        Name name;
-
-        public Name getName() {
-            return name;
-        }
+        public SQLiteName name;
     }
 }

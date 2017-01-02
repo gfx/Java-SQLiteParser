@@ -28,41 +28,37 @@ public class SQLiteParser {
 PARSER_END (SQLiteParser)
 
 
-TOKEN_MGR_DECLS:
-{
-    public SQLiteComponent rootComponent;
+TOKEN_MGR_DECLS: {
 
-    public SQLiteComponent currentComponent;
+    private final Set<SQLiteStatement> subscribers = new HashSet<SQLiteStatement>();
 
     public void CommonTokenAction(Token token) {
-        if (currentComponent != null) {
-            currentComponent.addToken(token);
+        for (SQLiteStatement c : subscribers) {
+            c.addToken(token);
         }
     }
 
-    public void setComponent(SQLiteComponent component) {
-        if (rootComponent == null) {
-            rootComponent = component;
-        }
-        currentComponent = currentComponent;
+    public void subscribe(SQLiteStatement c) {
+        subscribers.add(c);
+    }
+
+    public void unsubscribe(SQLiteStatement c) {
+        subscribers.remove(c);
     }
 }
 
-SKIP:
-{
+SKIP: {
     <WHITESPACE: " " | "\t" | "\r" | "\n">
 }
 
-SPECIAL_TOKEN:
-{
+SPECIAL_TOKEN: {
    <LINE_COMMENT: "--"(~["\r","\n"])*>
 |  <MULTI_LINE_COMMENT: "/*" (~["*"])* "*" ("*" | (~["*","/"] (~["*"])* "*"))* "/">
 }
 
 
 // Keywords from https://www.sqlite.org/lang_keywords.html
-TOKEN:
-{
+TOKEN: {
   <K_ABORT: "ABORT">
 | <K_ACTION: "ACTION">
 | <K_ADD: "ADD">
@@ -191,21 +187,13 @@ TOKEN:
 
 // Operators
 
-TOKEN:
-{
-  <OP_CONCAT: "||">
-| <OP_LEFT_SHIFT: "<<">
-| <OP_RIGHT_SHIFT: ">>">
-| <OP_EQ: "==">
-| <OP_GE: ">=">
-| <OP_LE: "<=">
-| <OP_NE: ("<>" | "!=")>
+TOKEN: {
+ <DOT: ".">
 }
 
-TOKEN:
-{
+TOKEN: {
   <NUMERIC_LITERAL:
-      (<DIGITS>)? ("." (<DIGITS>)?)? ( "E" (<SIGN>)? <DIGITS>)?
+      <DIGITS> ("." (<DIGIT>)*)? ( "E" (<SIGN>)? <DIGITS>)?
     |  "." <DIGITS> ("E" (<SIGN>)? <DIGITS>)?
     | "0x" ( <HEX_DIGIT> )+ >
 | <#DIGITS: ( <DIGIT> )+ >
@@ -218,87 +206,370 @@ TOKEN:
              | "\"" (~["\n","\r","\""] | "\"\"")+ "\""
              | ("`"  (~["\n","\r","`"]  | "``")+   "`")
              | ("["  (~["\n","\r","]"])+           "]") >
+
+| <BIND_PARAMETER: ("?" (<DIGIT>)*) | [":", "@", "$"] <IDENTIFIER> >
 }
 
-void program(): {
-}
-{
-    createStatement()
+
+SQLiteStatement statement(): {
+    SQLiteStatement statement;
+} {
+    statement=createTableStatement()
+    {
+        return statement;
+    }
 }
 
-void createStatement(): {
-    CreateTableStatement statement = new CreateTableStatement();
-    token_source.setComponent(statement);
+SQLiteCreateTableStatement createTableStatement(): {
+    SQLiteCreateTableStatement statement = new SQLiteCreateTableStatement();
+    token_source.subscribe(statement);
 
+    SQLiteName tableName;
     SQLiteColumn column;
 } {
     <K_CREATE> (<K_TEMP> | <K_TEMPORARY>)? <K_TABLE>
     (<K_IF> <K_NOT> <K_EXISTS>)?
-    (<IDENTIFIER> "." )? {
-        statement.setSchemaName(token.image);
-     }
-    <IDENTIFIER> {
-        statement.setTableName(token.image);
+    tableName=qualifiedTableName() {
+        statement.setTableName(tableName);
     }
     "("
-        ( column = column() {
+        column=column() {
             statement.addColumn(column);
           }
-         )+
+        ( ","
+            column=column() {
+                statement.addColumn(column);
+            }
+        )*
     ")"
+    {
+        token_source.unsubscribe(statement);
+        return statement;
+    }
 }
+
 
 SQLiteColumn column(): {
     SQLiteColumn column = new SQLiteColumn();
-    token_source.setComponent(column);
+
+    SQLiteName columnName;
+    SQLiteType type;
+    SQLiteColumnConstraint constraint;
 } {
-    <IDENTIFIER> {
-        column.setName(token.image);
+    columnName=name() {
+        column.setName(columnName);
     }
-    ( typeName() )?
-    ( columnConstraint() )*
+    (
+        type=typeName() {
+            column.setType(type);
+        }
+    )?
+    (
+        constraint=columnConstraint() {
+            column.addConstraint(constraint);
+        }
+    )*
     {
         return column;
     }
 }
 
-void typeName(): {
+SQLiteColumnConstraint columnConstraint(): {
+    SQLiteColumnConstraint constraint = new SQLiteColumnConstraint();
+    SQLiteTokenList tokens;
+    SQLiteExpression expr;
+    SQLiteName name;
 } {
-    <IDENTIFIER>
-    ( "(" <NUMERIC_LITERAL> ("," <NUMERIC_LITERAL>)? ")" )?
-}
-
-void columnConstraint(): {
-}
-{
-    (<K_CONSTRAINT> <IDENTIFIER>)?
-    (     (<K_PRIMARY> <K_KEY> (<K_ASC> | <K_DESC>)? conflictClause() (<K_AUTOINCREMENT>)?)
+    (
+        <K_CONSTRAINT>
+        name=name() { constraint.name = name; }
+    )?
+    (
+        tokens=primaryKeyConstraint() { constraint.tokens.addAll(tokens); }
         | (<K_NOT>)? <K_NULL> conflictClause()
         | <K_UNIQUE> conflictClause()
-        //| <K_CHECK> "(" expr() ")"
-        //| <K_DEFAULT> ...
-       | <K_COLLATE> <IDENTIFIER>
+        | <K_CHECK> "(" expr=expr() { constraint.checkExpr = expr; } ")"
+        | ( <K_DEFAULT> ( expr=signedNumber() | expr=literalValue() | "(" expr=expr() ")" ) ) { constraint.defaultExpr = expr; }
+        | <K_COLLATE> name=name() { constraint.collateName = name; }
        foreignKeyClause()
     )
+    {
+        return constraint;
+    }
+}
+
+SQLiteTokenList primaryKeyConstraint(): {
+    SQLiteTokenList tokens = new SQLiteTokenList();
+} {
+    (
+        <K_PRIMARY> { tokens.add(token); }
+        <K_KEY> { tokens.add(token); }
+        (
+            <K_ASC> { tokens.add(token); }
+            | <K_DESC> { tokens.add(token); }
+        )?
+        conflictClause()
+        (<K_AUTOINCREMENT> { tokens.add(token); })?
+    )
+    {
+        return tokens;
+    }
 }
 
 void conflictClause(): {
-}
-{
+} {
     (<K_ON> <K_CONFLICT> (<K_ROLLBACK> | <K_ABORT> | <K_FAIL> | <K_IGNORE> | <K_REPLACE>))?
 }
 
 void foreignKeyClause(): {
-}
-{
+} {
     <K_REFERENCES> <IDENTIFIER> ( "(" <IDENTIFIER> ("," <IDENTIFIER>)* ")" )?
     (
         (<K_ON> (<K_DELETE> | <K_UPDATE>)
-            (<K_SET> <K_NULL> | <K_SET> <K_DEFAULT> | <K_CASCADE> | <K_RESTRICT> | <K_NO> <K_ACTION>))
+            (<K_SET> ( <K_NULL> | <K_DEFAULT> ) | <K_CASCADE> | <K_RESTRICT> | <K_NO> <K_ACTION>))
         |
         (<K_MATCH> <IDENTIFIER>)
     )*
     (
         (<K_NOT>)? <K_DEFERRABLE> (<K_INITIALLY> (<K_DEFERRED> | <K_IMMEDIATE>)?)?
     )?
+}
+
+
+SQLiteExpression expr(): {
+    SQLiteExpression leftExpr;
+    SQLiteSymbol binOp;
+    SQLiteExpression rightExpr;
+} {
+    leftExpr=multiplicativeExpr()
+    (
+        "||" { binOp = new SQLiteSymbol(token.image); }
+        rightExpr=multiplicativeExpr() {
+            leftExpr = new SQLiteBinaryOpExpression(leftExpr, binOp, rightExpr);
+        }
+    )*
+    {
+        return leftExpr;
+    }
+}
+
+SQLiteExpression multiplicativeExpr(): {
+    SQLiteExpression leftExpr;
+    SQLiteSymbol binOp;
+    SQLiteExpression rightExpr;
+} {
+    leftExpr=additiveExpr()
+    (
+        ( "*" | "/" | "%" ) { binOp = new SQLiteSymbol(token.image); }
+        rightExpr=additiveExpr() {
+            leftExpr = new SQLiteBinaryOpExpression(leftExpr, binOp, rightExpr);
+        }
+    )*
+    {
+        return leftExpr;
+    }
+}
+
+SQLiteExpression additiveExpr(): {
+    SQLiteExpression leftExpr;
+    SQLiteSymbol binOp;
+    SQLiteExpression rightExpr;
+} {
+    leftExpr=shiftiveExpr()
+    (
+        ( "+" | "-" ) { binOp = new SQLiteSymbol(token.image); }
+        rightExpr=shiftiveExpr() {
+            leftExpr = new SQLiteBinaryOpExpression(leftExpr, binOp, rightExpr);
+        }
+    )*
+    {
+        return leftExpr;
+    }
+}
+
+SQLiteExpression shiftiveExpr(): {
+    SQLiteExpression leftExpr;
+    SQLiteSymbol binOp;
+    SQLiteExpression rightExpr;
+} {
+    leftExpr=primaryExpr()
+    (
+        ( "<<" | ">>" | "&" | "|" ) { binOp = new SQLiteSymbol(token.image); }
+        rightExpr=primaryExpr() {
+            leftExpr = new SQLiteBinaryOpExpression(leftExpr, binOp, rightExpr);
+        }
+    )*
+    {
+        return leftExpr;
+    }
+}
+
+
+SQLiteExpression primaryExpr(): {
+    SQLiteExpression expr;
+} {
+    (
+        expr=literalValue()
+        | <BIND_PARAMETER> { expr = new SQLiteBindParameter(token.image); }
+        | expr=qualifiedColumnName()
+        | expr=unaryOpExpr()
+        | expr=functionExpr()
+        | "(" expr=exprList() ")"
+        | expr=castExpr()
+    ) (
+        // TODO: handle more expressions
+        <K_COLLATE> name()
+        | ( <K_NOT>)? ( <K_LIKE> | <K_GLOB> | <K_REGEXP> | <K_MATCH> ) expr() ( <K_ESCAPE> expr() )?
+        | <K_ISNULL> | <K_NOTNULL> | <K_NOT> <K_NULL>
+        | <K_IS> (<K_NOT>)? expr()
+    )?
+    {
+        return expr;
+    }
+}
+
+SQLiteUnaryOpExpression unaryOpExpr(): {
+    SQLiteSymbol op;
+    SQLiteExpression expr;
+}
+{
+    op=unaryOperator() expr=expr()
+    {
+        return new SQLiteUnaryOpExpression(op, expr);
+    }
+}
+
+SQLiteFunctionExpression functionExpr(): {
+    SQLiteName name;
+    SQLiteKeyword distinct = null;
+    SQLiteSymbol wildcard = null;
+    SQLiteListExpression args = null;
+}
+{
+    name=name()
+    "("
+        (
+            (
+                <K_DISTINCT> { distinct = new SQLiteKeyword(token.image); }
+            )?
+            args=exprList()
+            |  "*" { wildcard = new SQLiteSymbol(token.image); }
+        )?
+    ")"
+    {
+        return new SQLiteFunctionExpression(name, distinct, wildcard, args);
+    }
+}
+
+SQLiteCastExpression castExpr(): {
+    SQLiteExpression expr;
+    SQLiteType type;
+} {
+    <K_CAST>
+    "("
+    expr=expr()
+    <K_AS>
+    type=typeName()
+    ")"
+    {
+        return new SQLiteCastExpression(expr, type);
+    }
+}
+
+SQLiteListExpression exprList(): {
+    SQLiteListExpression listExpr = new SQLiteListExpression();
+    SQLiteExpression expr;
+} {
+    (
+        expr=expr() { listExpr.add(expr); }
+        ("," expr=expr() { listExpr.add(expr); } )*
+    )
+    {
+        return listExpr;
+    }
+}
+
+SQLiteLiteral literalValue(): {
+    SQLiteLiteral expr;
+} {
+    (
+        <NUMERIC_LITERAL> { expr = new SQLiteNumericLiteral(token.image); }
+        | <STRING_LITERAL> { expr = new SQLiteStringLiteral(token.image); }
+        | <BLOB_LITERAL> { expr = new SQLiteBlobLiteral(token.image); }
+        | <K_NULL> { expr = new SQLiteNullLiteral(token.image); }
+        | <K_CURRENT_TIME> { expr = new SQLiteTimeLiteral(token.image); }
+        | <K_CURRENT_DATE> { expr = new SQLiteTimeLiteral(token.image); }
+        | <K_CURRENT_TIMESTAMP> { expr = new SQLiteTimeLiteral(token.image); }
+    )
+    {
+        return expr;
+    }
+}
+
+SQLiteSymbol unaryOperator(): {
+} {
+    ("+" | "-" | "~" | <K_NOT>)
+    {
+        return new SQLiteSymbol(token.image);
+    }
+}
+
+SQLiteUnaryOpExpression signedNumber(): {
+    SQLiteSymbol op = null;
+} {
+
+    (op=sign())? <NUMERIC_LITERAL>
+    {
+        return new SQLiteUnaryOpExpression(op, new SQLiteNumericLiteral(token.image));
+    }
+}
+
+SQLiteSymbol sign(): {
+} {
+    ("+" | "-")
+    {
+        return new SQLiteSymbol(token.image);
+    }
+}
+
+SQLiteType typeName(): {
+    SQLiteName name;
+    SQLiteExpression p1 = null;
+    SQLiteExpression p2 = null;
+}
+{
+    name=name() ( "(" p1=signedNumber() ("," p2=signedNumber())? ")" )?
+    {
+        return new SQLiteType(name, p1, p2);
+    }
+}
+
+SQLiteQualifiedName qualifiedColumnName(): {
+    SQLiteName tableName = null;
+    SQLiteName columnName;
+} {
+    ( tableName=qualifiedTableName() <DOT> )? columnName=name()
+    {
+        return new SQLiteQualifiedName(tableName, columnName);
+    }
+}
+
+
+SQLiteName qualifiedTableName(): {
+    SQLiteName schemaName = null;
+    SQLiteName tableName;
+}
+{
+    ( schemaName=name() <DOT> )? tableName=name()
+    {
+        return new SQLiteQualifiedName(schemaName, tableName);
+    }
+}
+
+SQLiteName name(): {
+} {
+    <IDENTIFIER>
+    {
+        return new SQLiteSimpleName(token.image);
+    }
 }
