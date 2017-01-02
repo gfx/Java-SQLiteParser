@@ -17,7 +17,7 @@ PARSER_BEGIN (SQLiteParser)
 
 package com.github.gfx.sqlite_ddl.g;
 
-import com.gighub.gfx.sqlite_ddl.*;
+import com.github.gfx.sqlite_ddl.*;
 
 import java.util.*;
 
