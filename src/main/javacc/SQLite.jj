@@ -3,7 +3,6 @@
 // see also https://github.com/gfx/Android-Orma/blob/master/migration/src/main/antlr/SQLite.g4
 
 options {
-    LOOKAHEAD = 2;
     IGNORE_CASE = true;
     STATIC = false;
 	DEBUG_PARSER = false;
@@ -289,7 +288,7 @@ SQLiteColumnConstraint columnConstraint(): {
         | (<K_NOT>)? <K_NULL> conflictClause()
         | <K_UNIQUE> conflictClause()
         | ( <K_CHECK> "(" expr=expr() ")" ) { constraint.checkExpr = expr; }
-        | ( <K_DEFAULT> ( expr=signedNumber() | expr=literalValue() | "(" expr=expr() ")" ) ) { constraint.defaultExpr = expr; }
+        | ( <K_DEFAULT> ( LOOKAHEAD(signedNumber()) expr=signedNumber() | expr=literalValue() | "(" expr=expr() ")" ) ) { constraint.defaultExpr = expr; }
         | <K_COLLATE> name=name() { constraint.collateName = name; }
        foreignKeyClause()
     )
@@ -331,7 +330,7 @@ void foreignKeyClause(): {
         (<K_MATCH> <IDENTIFIER>)
     )*
     (
-        (<K_NOT>)? <K_DEFERRABLE> (<K_INITIALLY> (<K_DEFERRED> | <K_IMMEDIATE>)?)?
+        LOOKAHEAD(<K_NOT>) (<K_NOT>)? <K_DEFERRABLE> (<K_INITIALLY> (<K_DEFERRED> | <K_IMMEDIATE>)?)?
     )?
 }
 
@@ -353,6 +352,7 @@ SQLiteExpression orExpr(): {
 } {
     leftExpr=andExpr()
     (
+        LOOKAHEAD(<K_OR>)
         <K_OR> { binOp = new SQLiteSymbol(token.image); }
         rightExpr=andExpr() {
             leftExpr = new SQLiteBinaryOpExpression(leftExpr, binOp, rightExpr);
@@ -370,7 +370,7 @@ SQLiteExpression andExpr(): {
 } {
     leftExpr=equativeExpr()
     (
-        <K_AND> { binOp = new SQLiteSymbol(token.image); }
+        LOOKAHEAD(<K_AND>) <K_AND> { binOp = new SQLiteSymbol(token.image); }
         rightExpr=equativeExpr() {
             leftExpr = new SQLiteBinaryOpExpression(leftExpr, binOp, rightExpr);
         }
@@ -388,9 +388,9 @@ SQLiteExpression equativeExpr(): {
     leftExpr=comparativeExpr()
     (
         (
-            "=" | "==" | "!=" | "<>"
-            | <K_IS> (<K_NOT>)?
-            | (<K_NOT>)? (<K_IN> | <K_LIKE> | <K_GLOB> | <K_MATCH> | <K_REGEXP>)
+            "==" | "=" | "!=" | "<>"
+            | <K_IS> (LOOKAHEAD(<K_NOT>) <K_NOT>)?
+            // FIXME | (<K_NOT>)? (<K_IN> | <K_LIKE> | <K_GLOB> | <K_MATCH> | <K_REGEXP>)
         ) { binOp = new SQLiteSymbol(token.image); }
         rightExpr=comparativeExpr() {
             leftExpr = new SQLiteBinaryOpExpression(leftExpr, binOp, rightExpr);
@@ -442,7 +442,7 @@ SQLiteExpression additiveExpr(): {
 } {
     leftExpr=multiplicativeExpr()
     (
-        ( "+" | "-" ) { binOp = new SQLiteSymbol(token.image); }
+        LOOKAHEAD("+" | "-") ( "+" | "-" ) { binOp = new SQLiteSymbol(token.image); }
         rightExpr=multiplicativeExpr() {
             leftExpr = new SQLiteBinaryOpExpression(leftExpr, binOp, rightExpr);
         }
@@ -492,18 +492,17 @@ SQLiteExpression primaryExpr(): {
 } {
     (
         expr=literalValue()
+        | LOOKAHEAD(functionExpr()) expr=functionExpr()
         | <BIND_PARAMETER> { expr = new SQLiteBindParameter(token.image); }
         | name=qualifiedColumnName() { expr = new SQLiteNameExpr(name); }
         | expr=unaryOpExpr()
-        | expr=functionExpr()
         | "(" expr=exprList() ")"
         | expr=castExpr()
     ) (
         // TODO: handle more expressions
         <K_COLLATE> name()
-        | ( <K_NOT>)? ( <K_LIKE> | <K_GLOB> | <K_REGEXP> | <K_MATCH> ) expr() ( <K_ESCAPE> expr() )?
-        | <K_ISNULL> | <K_NOTNULL> | <K_NOT> <K_NULL>
-        | <K_IS> (<K_NOT>)? expr()
+        | <K_ISNULL> | <K_NOTNULL>
+        // FIXME | <K_NOT> <K_NULL>
     )?
     {
         return expr;
@@ -623,7 +622,8 @@ SQLiteQualifiedName qualifiedColumnName(): {
     SQLiteName tableName = null;
     SQLiteName columnName;
 } {
-    ( tableName=qualifiedTableName() <DOT> )? columnName=name()
+    ( tableName=qualifiedTableName() <DOT> )
+    columnName=name()
     {
         return new SQLiteQualifiedName(tableName, columnName);
     }
@@ -631,13 +631,13 @@ SQLiteQualifiedName qualifiedColumnName(): {
 
 
 SQLiteName qualifiedTableName(): {
-    SQLiteName schemaName = null;
-    SQLiteName tableName;
+    SQLiteName name;
+    SQLiteName tableName = null;
 }
 {
-    ( schemaName=name() <DOT> )? tableName=name()
+    name=name() (LOOKAHEAD(<DOT>) <DOT> tableName=name() )?
     {
-        return new SQLiteQualifiedName(schemaName, tableName);
+        return tableName == null ? new SQLiteQualifiedName(null, name) : new SQLiteQualifiedName(name, tableName);
     }
 }
 
