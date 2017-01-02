@@ -14,4 +14,22 @@ public class SQLiteCastExpression extends SQLiteExpression {
     public String toString() {
         return "cast(" + expr + " as " + type + ")";
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        SQLiteCastExpression that = (SQLiteCastExpression) o;
+
+        if (!expr.equals(that.expr)) return false;
+        return type.equals(that.type);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = expr.hashCode();
+        result = 31 * result + type.hashCode();
+        return result;
+    }
 }

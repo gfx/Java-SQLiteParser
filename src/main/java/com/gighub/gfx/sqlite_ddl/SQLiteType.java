@@ -28,4 +28,24 @@ public class SQLiteType extends SQLiteNode {
             return typeName + "(" + p1 + "," + p2 + ")";
         }
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        SQLiteType that = (SQLiteType) o;
+
+        if (!typeName.equals(that.typeName)) return false;
+        if (p1 != null ? !p1.equals(that.p1) : that.p1 != null) return false;
+        return p2 != null ? p2.equals(that.p2) : that.p2 == null;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = typeName.hashCode();
+        result = 31 * result + (p1 != null ? p1.hashCode() : 0);
+        result = 31 * result + (p2 != null ? p2.hashCode() : 0);
+        return result;
+    }
 }

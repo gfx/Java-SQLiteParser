@@ -31,8 +31,8 @@ task generateParserSources(type: JavaExec) {
 
     // inputs and outputs are necessary for incremental build in ad-hoc task
     // https://docs.gradle.org/current/userguide/more_about_tasks.html#sec:task_input_output_runtime_api
-    //inputs.files JJ_GRAMMAR_FILE
-    //outputs.dir "$JJ_OUTPUT_DIR/$JJ_PACKAGE_PATH"
+    inputs.files JJ_GRAMMAR_FILE
+    outputs.dir "$JJ_OUTPUT_DIR/$JJ_PACKAGE_PATH"
 }
 
 tasks.compileJava.dependsOn(generateParserSources)

@@ -288,7 +288,7 @@ SQLiteColumnConstraint columnConstraint(): {
         tokens=primaryKeyConstraint() { constraint.tokens.addAll(tokens); }
         | (<K_NOT>)? <K_NULL> conflictClause()
         | <K_UNIQUE> conflictClause()
-        | <K_CHECK> "(" expr=expr() { constraint.checkExpr = expr; } ")"
+        | ( <K_CHECK> "(" expr=expr() ")" ) { constraint.checkExpr = expr; }
         | ( <K_DEFAULT> ( expr=signedNumber() | expr=literalValue() | "(" expr=expr() ")" ) ) { constraint.defaultExpr = expr; }
         | <K_COLLATE> name=name() { constraint.collateName = name; }
        foreignKeyClause()
@@ -337,14 +337,24 @@ void foreignKeyClause(): {
 
 
 SQLiteExpression expr(): {
+    SQLiteExpression expr;
+} {
+    expr=orExpr()
+    {
+        return expr;
+    }
+}
+
+
+SQLiteExpression orExpr(): {
     SQLiteExpression leftExpr;
     SQLiteSymbol binOp;
     SQLiteExpression rightExpr;
 } {
-    leftExpr=multiplicativeExpr()
+    leftExpr=andExpr()
     (
-        "||" { binOp = new SQLiteSymbol(token.image); }
-        rightExpr=multiplicativeExpr() {
+        <K_OR> { binOp = new SQLiteSymbol(token.image); }
+        rightExpr=andExpr() {
             leftExpr = new SQLiteBinaryOpExpression(leftExpr, binOp, rightExpr);
         }
     )*
@@ -353,15 +363,15 @@ SQLiteExpression expr(): {
     }
 }
 
-SQLiteExpression multiplicativeExpr(): {
+SQLiteExpression andExpr(): {
     SQLiteExpression leftExpr;
     SQLiteSymbol binOp;
     SQLiteExpression rightExpr;
 } {
-    leftExpr=additiveExpr()
+    leftExpr=equativeExpr()
     (
-        ( "*" | "/" | "%" ) { binOp = new SQLiteSymbol(token.image); }
-        rightExpr=additiveExpr() {
+        <K_AND> { binOp = new SQLiteSymbol(token.image); }
+        rightExpr=equativeExpr() {
             leftExpr = new SQLiteBinaryOpExpression(leftExpr, binOp, rightExpr);
         }
     )*
@@ -370,14 +380,35 @@ SQLiteExpression multiplicativeExpr(): {
     }
 }
 
-SQLiteExpression additiveExpr(): {
+SQLiteExpression equativeExpr(): {
+    SQLiteExpression leftExpr;
+    SQLiteSymbol binOp;
+    SQLiteExpression rightExpr;
+} {
+    leftExpr=comparativeExpr()
+    (
+        (
+            "=" | "==" | "!=" | "<>"
+            | <K_IS> (<K_NOT>)?
+            | (<K_NOT>)? (<K_IN> | <K_LIKE> | <K_GLOB> | <K_MATCH> | <K_REGEXP>)
+        ) { binOp = new SQLiteSymbol(token.image); }
+        rightExpr=comparativeExpr() {
+            leftExpr = new SQLiteBinaryOpExpression(leftExpr, binOp, rightExpr);
+        }
+    )*
+    {
+        return leftExpr;
+    }
+}
+
+SQLiteExpression comparativeExpr(): {
     SQLiteExpression leftExpr;
     SQLiteSymbol binOp;
     SQLiteExpression rightExpr;
 } {
     leftExpr=shiftiveExpr()
     (
-        ( "+" | "-" ) { binOp = new SQLiteSymbol(token.image); }
+        ( "<" | "<=" | ">" | ">=" ) { binOp = new SQLiteSymbol(token.image); }
         rightExpr=shiftiveExpr() {
             leftExpr = new SQLiteBinaryOpExpression(leftExpr, binOp, rightExpr);
         }
@@ -392,9 +423,60 @@ SQLiteExpression shiftiveExpr(): {
     SQLiteSymbol binOp;
     SQLiteExpression rightExpr;
 } {
-    leftExpr=primaryExpr()
+    leftExpr=additiveExpr()
     (
         ( "<<" | ">>" | "&" | "|" ) { binOp = new SQLiteSymbol(token.image); }
+        rightExpr=additiveExpr() {
+            leftExpr = new SQLiteBinaryOpExpression(leftExpr, binOp, rightExpr);
+        }
+    )*
+    {
+        return leftExpr;
+    }
+}
+
+SQLiteExpression additiveExpr(): {
+    SQLiteExpression leftExpr;
+    SQLiteSymbol binOp;
+    SQLiteExpression rightExpr;
+} {
+    leftExpr=multiplicativeExpr()
+    (
+        ( "+" | "-" ) { binOp = new SQLiteSymbol(token.image); }
+        rightExpr=multiplicativeExpr() {
+            leftExpr = new SQLiteBinaryOpExpression(leftExpr, binOp, rightExpr);
+        }
+    )*
+    {
+        return leftExpr;
+    }
+}
+
+SQLiteExpression multiplicativeExpr(): {
+    SQLiteExpression leftExpr;
+    SQLiteSymbol binOp;
+    SQLiteExpression rightExpr;
+} {
+    leftExpr=concatExpr()
+    (
+        ( "*" | "/" | "%" ) { binOp = new SQLiteSymbol(token.image); }
+        rightExpr=concatExpr() {
+            leftExpr = new SQLiteBinaryOpExpression(leftExpr, binOp, rightExpr);
+        }
+    )*
+    {
+        return leftExpr;
+    }
+}
+
+SQLiteExpression concatExpr(): {
+    SQLiteExpression leftExpr;
+    SQLiteSymbol binOp;
+    SQLiteExpression rightExpr;
+} {
+    leftExpr=primaryExpr()
+    (
+        "||" { binOp = new SQLiteSymbol(token.image); }
         rightExpr=primaryExpr() {
             leftExpr = new SQLiteBinaryOpExpression(leftExpr, binOp, rightExpr);
         }
@@ -404,14 +486,14 @@ SQLiteExpression shiftiveExpr(): {
     }
 }
 
-
 SQLiteExpression primaryExpr(): {
+    SQLiteName name;
     SQLiteExpression expr;
 } {
     (
         expr=literalValue()
         | <BIND_PARAMETER> { expr = new SQLiteBindParameter(token.image); }
-        | expr=qualifiedColumnName()
+        | name=qualifiedColumnName() { expr = new SQLiteNameExpr(name); }
         | expr=unaryOpExpr()
         | expr=functionExpr()
         | "(" expr=exprList() ")"
@@ -433,7 +515,8 @@ SQLiteUnaryOpExpression unaryOpExpr(): {
     SQLiteExpression expr;
 }
 {
-    op=unaryOperator() expr=expr()
+    ("+" | "-" | "~" | <K_NOT>) { op = new SQLiteSymbol(token.image); }
+    expr=expr()
     {
         return new SQLiteUnaryOpExpression(op, expr);
     }
@@ -503,14 +586,6 @@ SQLiteLiteral literalValue(): {
     )
     {
         return expr;
-    }
-}
-
-SQLiteSymbol unaryOperator(): {
-} {
-    ("+" | "-" | "~" | <K_NOT>)
-    {
-        return new SQLiteSymbol(token.image);
     }
 }
 

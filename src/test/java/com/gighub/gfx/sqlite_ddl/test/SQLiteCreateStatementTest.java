@@ -3,12 +3,10 @@ package com.gighub.gfx.sqlite_ddl.test;
 import com.gighub.gfx.sqlite_ddl.*;
 import org.junit.Test;
 
-import java.util.List;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
-public class SQLiteParserUtilsTest {
+public class SQLiteCreateStatementTest {
     @Test
     public void smokeTest() throws Exception {
         SQLiteCreateTableStatement c = SQLiteParserUtils.parseCreateTableStatement(
@@ -20,6 +18,11 @@ public class SQLiteParserUtilsTest {
     @Test(expected = SQLiteParserException.class)
     public void parseInvalidSyntax() throws Exception {
         SQLiteParserUtils.parse("create table foo (");
+    }
+
+    @Test(expected = SQLiteParserException.class)
+    public void parseInvalidStatement() throws Exception {
+        SQLiteParserUtils.parse("!");
     }
 
     @Test
@@ -47,13 +50,30 @@ public class SQLiteParserUtilsTest {
         assertThat(a.tokens, is(b.tokens));
     }
 
+    public void column() {
+        SQLiteCreateTableStatement c = SQLiteParserUtils.parseCreateTableStatement(
+                "create table foo (id integer primary key, value text not null)");
+
+        SQLiteColumn primaryKey = c.getColumns().get(0);
+        assertThat(primaryKey.getColumnName().getName(), is("id"));
+        assertThat(primaryKey.getType().toString(), is("integer"));
+        assertThat(primaryKey.isPrimaryKey(), is(true));
+    }
+
     @Test
-    public void constraints() {
+    public void columnConstraintDefault() {
         SQLiteCreateTableStatement c = SQLiteParserUtils.parseCreateTableStatement(
                 "create table foo (value text default(1 + 2))");
 
-        List<SQLiteColumnConstraint> constraints = c.getColumns().get(0).getConstraints();
-
-        assertThat(constraints.get(0).defaultExpr.toString(), is("1 + 2"));
+        assertThat(c.getColumns().get(0).getDefaultExpr().toString(), is("1 + 2"));
     }
+
+    @Test
+    public void columnConstraintCheck() {
+        SQLiteCreateTableStatement c = SQLiteParserUtils.parseCreateTableStatement(
+                "create table foo (value integer check(value > 0))");
+
+        assertThat(c.getColumns().get(0).getCheckExpr().toString(), is("`value` > 0"));
+    }
+
 }

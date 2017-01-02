@@ -13,7 +13,7 @@ public class SQLiteColumn extends SQLiteNode {
 
     private final List<SQLiteColumnConstraint> constraints = new ArrayList<>();
 
-    public SQLiteName getName() {
+    public SQLiteName getColumnName() {
         return name;
     }
 
@@ -53,4 +53,29 @@ public class SQLiteColumn extends SQLiteNode {
         return columnSpecBuilder.toString();
     }
 
+    public boolean isPrimaryKey() {
+        for (SQLiteColumnConstraint constraint : constraints) {
+            if (constraint.isPrimaryKey()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public SQLiteExpression getDefaultExpr() {
+        for (SQLiteColumnConstraint constraint : constraints) {
+            if (constraint.defaultExpr != null) {
+                return constraint.defaultExpr;
+            }
+        }
+        return null;
+    }
+
+    public SQLiteExpression getCheckExpr() {
+        for (SQLiteColumnConstraint constraint : constraints) {
+            if (constraint.checkExpr != null) {
+                return constraint.checkExpr;
+            }
+        }
+        return null;    }
 }

@@ -2,6 +2,7 @@ package com.gighub.gfx.sqlite_ddl;
 
 import com.github.gfx.sqlite_ddl.g.ParseException;
 import com.github.gfx.sqlite_ddl.g.SQLiteParser;
+import com.github.gfx.sqlite_ddl.g.TokenMgrError;
 
 import java.io.StringReader;
 
@@ -11,7 +12,7 @@ public class SQLiteParserUtils {
 
         try {
             return parser.statement();
-        } catch (ParseException e) {
+        } catch (ParseException | TokenMgrError e) {
             throw new SQLiteParserException(e);
         }
     }
@@ -21,7 +22,17 @@ public class SQLiteParserUtils {
 
         try {
             return parser.createTableStatement();
-        } catch (ParseException e) {
+        } catch (ParseException | TokenMgrError e) {
+            throw new SQLiteParserException(e);
+        }
+    }
+
+    public static SQLiteExpression parseExpression(String sql) {
+        SQLiteParser parser = new SQLiteParser(new StringReader(sql));
+
+        try {
+            return parser.expr();
+        } catch (ParseException | TokenMgrError e) {
             throw new SQLiteParserException(e);
         }
     }

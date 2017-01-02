@@ -17,4 +17,8 @@ public class SQLiteColumnConstraint extends SQLiteNode {
     public SQLiteExpression checkExpr;
 
     public SQLiteName collateName;
+
+    public boolean isPrimaryKey() {
+        return tokens.contains("primary");
+    }
 }
