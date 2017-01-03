@@ -9,6 +9,58 @@ import static org.hamcrest.Matchers.*;
 public class SQLiteExpressionTest {
 
     @Test
+    public void numberLiteral() throws Exception {
+        SQLiteExpression expr = SQLiteParserUtils.parseExpression("10.01");
+        assertThat(expr, is(
+                new SQLiteNumericLiteral("10.01"))
+        );
+    }
+
+    @Test
+    public void hexLiteral() throws Exception {
+        SQLiteExpression expr = SQLiteParserUtils.parseExpression("0xdeadbeef");
+        assertThat(expr, is(
+                new SQLiteNumericLiteral("0xdeadbeef"))
+        );
+    }
+
+    @Test
+    public void stringLiteral() throws Exception {
+        SQLiteExpression expr = SQLiteParserUtils.parseExpression("'foo bar baz'");
+        assertThat(expr, is(
+                new SQLiteStringLiteral("'foo bar baz'"))
+        );
+    }
+
+    @Test
+    public void nullLiteral() throws Exception {
+        SQLiteExpression expr = SQLiteParserUtils.parseExpression("null");
+        assertThat(expr, is(
+                new SQLiteNullLiteral("null"))
+        );
+    }
+
+    @Test
+    public void signedNumberPlus() throws Exception {
+        SQLiteExpression expr = SQLiteParserUtils.parseExpression("+10");
+        assertThat(expr, is(
+                new SQLiteUnaryOpExpression(
+                        new SQLiteSymbol("+"),
+                        new SQLiteNumericLiteral("10"))
+        ));
+    }
+
+    @Test
+    public void signedNumberMinus() throws Exception {
+        SQLiteExpression expr = SQLiteParserUtils.parseExpression("-10");
+        assertThat(expr, is(
+                new SQLiteUnaryOpExpression(
+                        new SQLiteSymbol("-"),
+                        new SQLiteNumericLiteral("10"))
+        ));
+    }
+
+    @Test
     public void add() throws Exception {
         SQLiteExpression expr = SQLiteParserUtils.parseExpression("1 + 2 + 3");
 
@@ -103,6 +155,23 @@ public class SQLiteExpressionTest {
                         null,
                         new SQLiteSymbol("*"),
                         null
+                )));
+    }
+
+    @Test
+    public void functionExprWithArgs() throws Exception {
+        SQLiteExpression expr = SQLiteParserUtils.parseExpression("f(foo, bar, baz)");
+
+        assertThat(expr, is(
+                new SQLiteFunctionExpression(
+                        new SQLiteSimpleName("f"),
+                        null,
+                        null,
+                        new SQLiteListExpression(
+                                new SQLiteNameExpr(new SQLiteSimpleName("foo")),
+                                new SQLiteNameExpr(new SQLiteSimpleName("bar")),
+                                new SQLiteNameExpr(new SQLiteSimpleName("baz"))
+                        )
                 )));
     }
 
