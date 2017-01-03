@@ -73,12 +73,34 @@ public class SQLiteCreateStatementTest {
     }
 
     @Test
+    public void columnTypeWithP1() {
+        SQLiteCreateTableStatement c = SQLiteParserUtils.parseCreateTableStatement(
+                "create table foo (id varchar(8))");
+
+        SQLiteColumn column = c.getColumns().get(0);
+        assertThat(column.getType().toString(), is("`varchar`(8)"));
+    }
+
+    @Test
+    public void columnTypeWithP1AndP2() {
+        SQLiteCreateTableStatement c = SQLiteParserUtils.parseCreateTableStatement(
+                "create table foo (id decimal(5, 2))");
+
+        SQLiteColumn column = c.getColumns().get(0);
+        assertThat(column.getType().toString(), is("`decimal`(5,2)"));
+    }
+
+    @Test
     public void columnConstraintDefault() {
         SQLiteCreateTableStatement c = SQLiteParserUtils.parseCreateTableStatement(
                 "create table foo (value text default(1 + 2))");
 
         SQLiteColumn column = c.getColumns().get(0);
-        assertThat(column.getDefaultExpr().toString(), is("1 + 2"));
+        assertThat(column.getDefaultExpr(), is(new SQLiteBinaryOpExpression(
+                new SQLiteNumericLiteral("1"),
+                new SQLiteSymbol("+"),
+                new SQLiteNumericLiteral("2")
+        )));
     }
 
     @Test

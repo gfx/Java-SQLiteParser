@@ -568,13 +568,14 @@ SQLiteExpression literalValue(): {
     }
 }
 
-SQLiteUnaryOpExpression signedNumber(): {
+SQLiteExpression signedNumber(): {
     SQLiteSymbol op = null;
+    SQLiteExpression expr;
 } {
 
-    (op=sign())? <NUMERIC_LITERAL>
+    (op=sign())? <NUMERIC_LITERAL> { expr = new SQLiteNumericLiteral(token.image); }
     {
-        return new SQLiteUnaryOpExpression(op, new SQLiteNumericLiteral(token.image));
+        return op != null ? new SQLiteUnaryOpExpression(op, expr) : expr;
     }
 }
 
