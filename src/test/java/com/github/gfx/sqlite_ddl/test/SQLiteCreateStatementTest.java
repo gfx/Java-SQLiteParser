@@ -50,14 +50,26 @@ public class SQLiteCreateStatementTest {
         assertThat(a.tokens, is(b.tokens));
     }
 
+    @Test
     public void column() {
         SQLiteCreateTableStatement c = SQLiteParserUtils.parseCreateTableStatement(
                 "create table foo (id integer primary key, value text not null)");
 
         SQLiteColumn primaryKey = c.getColumns().get(0);
         assertThat(primaryKey.getColumnName().getName(), is("id"));
-        assertThat(primaryKey.getType().toString(), is("integer"));
+        assertThat(primaryKey.getType(), is(new SQLiteType(new SQLiteSimpleName("integer"), null, null)));
         assertThat(primaryKey.isPrimaryKey(), is(true));
+    }
+
+    @Test
+    public void columnWithoutType() {
+        SQLiteCreateTableStatement c = SQLiteParserUtils.parseCreateTableStatement(
+                "create table foo (id, value)");
+
+        SQLiteColumn primaryKey = c.getColumns().get(0);
+        assertThat(primaryKey.getColumnName().getName(), is("id"));
+        assertThat(primaryKey.getType(), is(nullValue()));
+        assertThat(primaryKey.isPrimaryKey(), is(false));
     }
 
     @Test
@@ -65,7 +77,8 @@ public class SQLiteCreateStatementTest {
         SQLiteCreateTableStatement c = SQLiteParserUtils.parseCreateTableStatement(
                 "create table foo (value text default(1 + 2))");
 
-        assertThat(c.getColumns().get(0).getDefaultExpr().toString(), is("1 + 2"));
+        SQLiteColumn column = c.getColumns().get(0);
+        assertThat(column.getDefaultExpr().toString(), is("1 + 2"));
     }
 
     @Test

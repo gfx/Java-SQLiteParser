@@ -77,5 +77,6 @@ public class SQLiteColumn extends SQLiteNode {
                 return constraint.checkExpr;
             }
         }
-        return null;    }
+        return null;
+    }
 }
