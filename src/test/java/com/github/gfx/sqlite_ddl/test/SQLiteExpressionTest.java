@@ -187,7 +187,7 @@ public class SQLiteExpressionTest {
     }
 
     @Test
-    public void equative() throws Exception {
+    public void equatives() throws Exception {
         SQLiteExpression expr = SQLiteParserUtils.parseExpression("1 = 2");
 
         assertThat(expr, is(
@@ -195,6 +195,31 @@ public class SQLiteExpressionTest {
                         new SQLiteNumericLiteral("1"),
                         new SQLiteSymbol("="),
                         new SQLiteNumericLiteral("2")
+                )));
+    }
+
+    @Test
+    public void likeExpr() throws Exception {
+        SQLiteExpression expr = SQLiteParserUtils.parseExpression("foo LIKE 'http://%'");
+
+        assertThat(expr, is(
+                new SQLiteBinaryOpExpression(
+                        new SQLiteNameExpr(new SQLiteSimpleName("foo")),
+                        new SQLiteKeyword("LIKE"),
+                        new SQLiteStringLiteral("'http://%'")
+                )));
+    }
+
+    @Test
+    public void notLikeExpr() throws Exception {
+        SQLiteExpression expr = SQLiteParserUtils.parseExpression("foo not like 'http://%'");
+
+        assertThat(expr, is(
+                new SQLiteBinaryOpExpression(
+                        new SQLiteNameExpr(new SQLiteSimpleName("foo")),
+                        new SQLiteKeyword("not"),
+                        new SQLiteKeyword("like"),
+                        new SQLiteStringLiteral("'http://%'")
                 )));
     }
 
@@ -257,4 +282,14 @@ public class SQLiteExpressionTest {
                 )));
     }
 
+    @Test
+    public void castExpr() throws Exception {
+        SQLiteExpression expr = SQLiteParserUtils.parseExpression("cast(foo as integer)");
+
+        assertThat(expr, is(
+                new SQLiteCastExpression(
+                        new SQLiteNameExpr(new SQLiteSimpleName("foo")),
+                        new SQLiteType(new SQLiteSimpleName("integer"), null, null)
+                )));
+    }
 }

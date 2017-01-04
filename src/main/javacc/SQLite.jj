@@ -381,18 +381,21 @@ SQLiteExpression andExpr(): {
 
 SQLiteExpression equativeExpr(): {
     SQLiteExpression leftExpr;
-    SQLiteToken binOp;
+    SQLiteToken binOp1 = null;
+    SQLiteToken binOp2 = null;
     SQLiteExpression rightExpr;
 } {
     leftExpr=comparativeExpr()
     (
         (
-            "==" | "=" | "!=" | "<>"
-            | <K_IS> [LOOKAHEAD(<K_NOT>) <K_NOT>]
-            | [<K_NOT>] (<K_IN> | <K_LIKE> | <K_GLOB> | <K_MATCH> | <K_REGEXP>)
-        ) { binOp = SQLiteToken.create(token); }
+            ("==" | "=" | "!=" | "<>") { binOp1 = SQLiteToken.create(token); }
+            | <K_IS>  { binOp1 = SQLiteToken.create(token); }
+                [ LOOKAHEAD(<K_NOT>) <K_NOT> { binOp2 = SQLiteToken.create(token); } ]
+            | [ <K_NOT> { binOp1 = SQLiteToken.create(token); } ]
+                (<K_IN> | <K_LIKE> | <K_GLOB> | <K_MATCH> | <K_REGEXP>)  { binOp2 = SQLiteToken.create(token); }
+        )
         rightExpr=comparativeExpr() {
-            leftExpr = new SQLiteBinaryOpExpression(leftExpr, binOp, rightExpr);
+            leftExpr = new SQLiteBinaryOpExpression(leftExpr, binOp1, binOp2, rightExpr);
         }
     )*
     {
