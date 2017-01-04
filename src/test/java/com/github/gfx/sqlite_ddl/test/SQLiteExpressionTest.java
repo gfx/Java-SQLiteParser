@@ -73,8 +73,33 @@ public class SQLiteExpressionTest {
     }
 
     @Test
-    public void add() throws Exception {
-        SQLiteExpression expr = SQLiteParserUtils.parseExpression("1 + 2 + 3");
+    public void qualifiedNameExpr() throws Exception {
+        SQLiteExpression expr = SQLiteParserUtils.parseExpression("foo.bar");
+        assertThat(expr, is(
+                new SQLiteNameExpr(
+                        new SQLiteQualifiedName(
+                                new SQLiteSimpleName("foo"),
+                                new SQLiteSimpleName("bar")))));
+        assertThat(expr.toString(), is("`foo`.`bar`"));
+    }
+
+    @Test
+    public void fullyQualifiedNameExpr() throws Exception {
+        SQLiteExpression expr = SQLiteParserUtils.parseExpression("foo.bar.baz");
+        assertThat(expr, is(
+                new SQLiteNameExpr(
+                        new SQLiteQualifiedName(
+                                new SQLiteQualifiedName(
+                                        new SQLiteSimpleName("foo"),
+                                        new SQLiteSimpleName("bar")
+                                ),
+                                new SQLiteSimpleName("baz")))));
+        assertThat(expr.toString(), is("`foo`.`bar`.`baz`"));
+    }
+
+    @Test
+    public void additives() throws Exception {
+        SQLiteExpression expr = SQLiteParserUtils.parseExpression("1 + 2 - 3");
 
         assertThat(expr, is(
                 new SQLiteBinaryOpExpression(
@@ -83,7 +108,7 @@ public class SQLiteExpressionTest {
                                 new SQLiteSymbol("+"),
                                 new SQLiteNumericLiteral("2")
                         ),
-                        new SQLiteSymbol("+"),
+                        new SQLiteSymbol("-"),
                         new SQLiteNumericLiteral("3")
                 )));
     }
