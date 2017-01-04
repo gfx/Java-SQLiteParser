@@ -4,13 +4,13 @@ public class SQLiteFunctionExpression extends SQLiteExpression {
 
     public final SQLiteName name;
 
-    public final SQLiteKeyword distinct;
+    public final SQLiteToken distinct;
 
-    public final SQLiteSymbol wildcard;
+    public final SQLiteToken wildcard;
 
     public final SQLiteListExpression args;
 
-    public SQLiteFunctionExpression(SQLiteName name, SQLiteKeyword distinct, SQLiteSymbol wildcard, SQLiteListExpression args) {
+    public SQLiteFunctionExpression(SQLiteName name, SQLiteToken distinct, SQLiteToken wildcard, SQLiteListExpression args) {
         this.name = name;
         this.distinct = distinct;
         this.wildcard = wildcard;

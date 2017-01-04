@@ -17,10 +17,22 @@ public class SQLiteExpressionTest {
     }
 
     @Test
-    public void hexLiteral() throws Exception {
-        SQLiteExpression expr = SQLiteParserUtils.parseExpression("0xdeadbeef");
+    public void numberLiteralE() throws Exception {
+        SQLiteExpression expr = SQLiteParserUtils.parseExpression("1e32");
         assertThat(expr, is(
-                new SQLiteNumericLiteral("0xdeadbeef"))
+                new SQLiteNumericLiteral("1e32"))
+        );
+    }
+
+    @Test
+    public void hexLiteral() throws Exception {
+        SQLiteExpression expr = SQLiteParserUtils.parseExpression("0x1234567890abcdef");
+        assertThat(expr, is(
+                new SQLiteNumericLiteral("0x1234567890abcdef"))
+        );
+        expr = SQLiteParserUtils.parseExpression("0XABCDEF");
+        assertThat(expr, is(
+                new SQLiteNumericLiteral("0XABCDEF"))
         );
     }
 
@@ -97,7 +109,7 @@ public class SQLiteExpressionTest {
         SQLiteExpression expr = SQLiteParserUtils.parseExpression("foo == ? or foo == ?");
 
         SQLiteNameExpr foo = new SQLiteNameExpr(new SQLiteSimpleName("foo"));
-        SQLiteBindParameter ph = new SQLiteBindParameter("?");
+        SQLiteBindParameterExpression ph = new SQLiteBindParameterExpression("?");
 
         assertThat(expr, is(
                 new SQLiteBinaryOpExpression(
@@ -107,11 +119,35 @@ public class SQLiteExpressionTest {
                                 ph
 
                         ),
-                        new SQLiteSymbol("or"),
+                        new SQLiteKeyword("or"),
                         new SQLiteBinaryOpExpression(
                                 foo,
                                 new SQLiteSymbol("=="),
                                 ph
+
+                        )
+                )));
+    }
+
+    @Test
+    public void andExpr() throws Exception {
+        SQLiteExpression expr = SQLiteParserUtils.parseExpression("foo > 0 and foo < 10");
+
+        SQLiteNameExpr foo = new SQLiteNameExpr(new SQLiteSimpleName("foo"));
+
+        assertThat(expr, is(
+                new SQLiteBinaryOpExpression(
+                        new SQLiteBinaryOpExpression(
+                                foo,
+                                new SQLiteSymbol(">"),
+                                new SQLiteNumericLiteral("0")
+
+                        ),
+                        new SQLiteKeyword("and"),
+                        new SQLiteBinaryOpExpression(
+                                foo,
+                                new SQLiteSymbol("<"),
+                                new SQLiteNumericLiteral("10")
 
                         )
                 )));
@@ -129,6 +165,52 @@ public class SQLiteExpressionTest {
                         ),
                         new SQLiteSymbol("*"),
                         new SQLiteNumericLiteral("2")
+                )));
+    }
+
+    @Test
+    public void plusSigns() throws Exception {
+        SQLiteExpression expr = SQLiteParserUtils.parseExpression("+1 + +2");
+
+        assertThat(expr, is(
+                new SQLiteBinaryOpExpression(
+                        new SQLiteUnaryOpExpression(
+                                new SQLiteSymbol("+"),
+                                new SQLiteNumericLiteral("1")
+                        ),
+                        new SQLiteSymbol("+"),
+                        new SQLiteUnaryOpExpression(
+                                new SQLiteSymbol("+"),
+                                new SQLiteNumericLiteral("2")
+                        )
+                )));
+    }
+
+    @Test
+    public void equative() throws Exception {
+        SQLiteExpression expr = SQLiteParserUtils.parseExpression("1 = 2");
+
+        assertThat(expr, is(
+                new SQLiteBinaryOpExpression(
+                        new SQLiteNumericLiteral("1"),
+                        new SQLiteSymbol("="),
+                        new SQLiteNumericLiteral("2")
+                )));
+    }
+
+    @Test
+    public void in() throws Exception {
+        SQLiteExpression expr = SQLiteParserUtils.parseExpression("foo in (?, ?, ?)");
+
+        assertThat(expr, is(
+                new SQLiteBinaryOpExpression(
+                        new SQLiteNameExpr(new SQLiteSimpleName("foo")),
+                        new SQLiteKeyword("in"),
+                        new SQLiteListExpression(
+                                new SQLiteBindParameterExpression("?"),
+                                new SQLiteBindParameterExpression("?"),
+                                new SQLiteBindParameterExpression("?")
+                        )
                 )));
     }
 

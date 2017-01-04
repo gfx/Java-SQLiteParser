@@ -2,11 +2,11 @@ package com.github.gfx.sqlite_ddl;
 
 public class SQLiteUnaryOpExpression extends SQLiteExpression {
 
-    public SQLiteSymbol unaryOp;
+    public SQLiteToken unaryOp;
 
     public SQLiteExpression expr;
 
-    public SQLiteUnaryOpExpression(SQLiteSymbol unaryOp, SQLiteExpression expr) {
+    public SQLiteUnaryOpExpression(SQLiteToken unaryOp, SQLiteExpression expr) {
         this.unaryOp = unaryOp;
         this.expr = expr;
     }

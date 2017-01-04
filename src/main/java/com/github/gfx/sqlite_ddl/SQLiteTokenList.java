@@ -10,7 +10,7 @@ public class SQLiteTokenList {
     public final List<SQLiteToken> tokens = new ArrayList<>();
 
     public void add(Token token) {
-        tokens.add(SQLiteNode.create(token));
+        tokens.add(SQLiteToken.create(token));
     }
 
     public void addAll(SQLiteTokenList tokenList) {

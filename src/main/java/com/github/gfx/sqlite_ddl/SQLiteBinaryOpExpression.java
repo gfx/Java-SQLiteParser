@@ -4,11 +4,11 @@ public class SQLiteBinaryOpExpression extends SQLiteExpression {
 
     public SQLiteExpression leftExpr;
 
-    public SQLiteSymbol binOp;
+    public SQLiteToken binOp;
 
     public SQLiteExpression rightExpr;
 
-    public SQLiteBinaryOpExpression(SQLiteExpression leftExpr, SQLiteSymbol binOp, SQLiteExpression rightExpr) {
+    public SQLiteBinaryOpExpression(SQLiteExpression leftExpr, SQLiteToken binOp, SQLiteExpression rightExpr) {
         this.leftExpr = leftExpr;
         this.binOp = binOp;
         this.rightExpr = rightExpr;

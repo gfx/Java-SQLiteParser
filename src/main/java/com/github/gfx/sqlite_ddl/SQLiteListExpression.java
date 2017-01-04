@@ -24,6 +24,20 @@ public class SQLiteListExpression extends SQLiteExpression implements Iterable<S
     }
 
     @Override
+    public String toString() {
+        StringBuilder s = new StringBuilder("(");
+        for (SQLiteExpression expression : list) {
+            s.append(expression);
+            s.append(", ");
+        }
+        if (!list.isEmpty()) {
+            s.setLength(s.length() - ", ".length());
+        }
+        s.append(")");
+        return s.toString();
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;

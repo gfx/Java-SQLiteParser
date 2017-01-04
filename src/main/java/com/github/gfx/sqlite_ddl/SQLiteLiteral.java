@@ -1,11 +1,8 @@
 package com.github.gfx.sqlite_ddl;
 
-public class SQLiteLiteral extends SQLiteExpression {
+public abstract class SQLiteLiteral extends SQLiteExpression {
 
     public String value;
-
-    public SQLiteLiteral() {
-    }
 
     public SQLiteLiteral(String value) {
         this.value = value;

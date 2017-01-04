@@ -4,4 +4,6 @@ public class SQLiteNumericLiteral extends SQLiteLiteral {
     public SQLiteNumericLiteral(String value) {
         super(value);
     }
+
+
 }

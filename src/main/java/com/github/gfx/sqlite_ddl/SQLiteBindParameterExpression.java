@@ -1,10 +1,10 @@
 package com.github.gfx.sqlite_ddl;
 
-public class SQLiteBindParameter extends SQLiteExpression {
+public class SQLiteBindParameterExpression extends SQLiteExpression {
 
     public String name;
 
-    public SQLiteBindParameter(String name) {
+    public SQLiteBindParameterExpression(String name) {
         this.name = name;
     }
 
@@ -13,7 +13,7 @@ public class SQLiteBindParameter extends SQLiteExpression {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        SQLiteBindParameter that = (SQLiteBindParameter) o;
+        SQLiteBindParameterExpression that = (SQLiteBindParameterExpression) o;
 
         return name != null ? name.equalsIgnoreCase(that.name) : that.name == null;
     }

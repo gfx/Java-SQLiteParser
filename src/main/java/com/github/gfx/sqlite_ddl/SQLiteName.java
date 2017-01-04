@@ -2,7 +2,7 @@ package com.github.gfx.sqlite_ddl;
 
 import java.util.Locale;
 
-public abstract class SQLiteName extends SQLiteNode implements SQLiteToken {
+public abstract class SQLiteName extends SQLiteToken {
 
     public static String ensureEscaped(String s) {
         if (s.startsWith("\"") || s.startsWith("`") || s.startsWith("[")) {

@@ -2,9 +2,9 @@ package com.github.gfx.sqlite_ddl;
 
 public class SQLiteQualifiedName extends SQLiteName {
 
-    public SQLiteName scope;
+    public final SQLiteName scope;
 
-    public SQLiteName name;
+    public final SQLiteName name;
 
     public SQLiteQualifiedName(SQLiteName scope, SQLiteName name) {
         this.scope = scope;

@@ -1,6 +1,6 @@
 package com.github.gfx.sqlite_ddl;
 
-public class SQLiteSymbol extends SQLiteNode implements SQLiteToken {
+public class SQLiteSymbol extends SQLiteToken {
     public final String token;
 
     public SQLiteSymbol(String token) {
@@ -10,6 +10,11 @@ public class SQLiteSymbol extends SQLiteNode implements SQLiteToken {
     @Override
     public boolean contentEquals(String content) {
         return token.equals(content);
+    }
+
+    @Override
+    public String toString() {
+        return String.valueOf(token);
     }
 
     @Override
@@ -24,10 +29,5 @@ public class SQLiteSymbol extends SQLiteNode implements SQLiteToken {
     @Override
     public int hashCode() {
         return token.hashCode();
-    }
-
-    @Override
-    public String toString() {
-        return String.valueOf(token);
     }
 }
