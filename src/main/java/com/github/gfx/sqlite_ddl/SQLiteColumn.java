@@ -62,6 +62,24 @@ public class SQLiteColumn extends SQLiteNode {
         return false;
     }
 
+    public boolean isUnique() {
+        for (SQLiteColumnConstraint constraint : constraints) {
+            if (constraint.isUnique()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean isNullable() {
+        for (SQLiteColumnConstraint constraint : constraints) {
+            if (!constraint.isNullable()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public SQLiteExpression getDefaultExpr() {
         for (SQLiteColumnConstraint constraint : constraints) {
             if (constraint.defaultExpr != null) {
@@ -75,6 +93,15 @@ public class SQLiteColumn extends SQLiteNode {
         for (SQLiteColumnConstraint constraint : constraints) {
             if (constraint.checkExpr != null) {
                 return constraint.checkExpr;
+            }
+        }
+        return null;
+    }
+
+    public SQLiteName getCollate() {
+        for (SQLiteColumnConstraint constraint : constraints) {
+            if (constraint.collateName != null) {
+                return constraint.collateName;
             }
         }
         return null;

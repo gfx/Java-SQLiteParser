@@ -284,13 +284,14 @@ SQLiteColumnConstraint columnConstraint(): {
         name=name() { constraint.name = name; }
     )?
     (
-        tokens=primaryKeyConstraint() { constraint.tokens.addAll(tokens); }
-        | (<K_NOT>)? <K_NULL> conflictClause()
-        | <K_UNIQUE> conflictClause()
+        tokens=primaryKeyConstraint() { constraint.primaryKey = tokens; }
+        | LOOKAHEAD(<K_NOT>) <K_NOT> conflictClause() { constraint.nullability = new SQLiteTokenList(token); } <K_NULL> { constraint.nullability.add(token); }
+        | <K_NULL> conflictClause() { constraint.nullability = new SQLiteTokenList(token); }
+        | <K_UNIQUE> { constraint.unique = new SQLiteTokenList(token); } conflictClause()
         | ( <K_CHECK> "(" expr=expr() ")" ) { constraint.checkExpr = expr; }
         | ( <K_DEFAULT> ( LOOKAHEAD(signedNumber()) expr=signedNumber() | expr=literalValue() | "(" expr=expr() ")" ) ) { constraint.defaultExpr = expr; }
         | <K_COLLATE> name=name() { constraint.collateName = name; }
-       foreignKeyClause()
+        | foreignKeyClause()
     )
     {
         return constraint;

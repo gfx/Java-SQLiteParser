@@ -53,13 +53,42 @@ public class SQLiteCreateStatementTest {
     @Test
     public void column() {
         SQLiteCreateTableStatement c = SQLiteParserUtils.parseCreateTableStatement(
-                "create table foo (id integer primary key, value text not null)");
+                "create table foo (id integer primary key, value text)");
 
         SQLiteColumn primaryKey = c.getColumns().get(0);
         assertThat(primaryKey.getColumnName().getName(), is("id"));
         assertThat(primaryKey.getType(), is(new SQLiteType(new SQLiteSimpleName("integer"), null, null)));
         assertThat(primaryKey.isPrimaryKey(), is(true));
+        assertThat(primaryKey.isUnique(), is(true));
+        assertThat(primaryKey.isNullable(), is(false));
+
+        SQLiteColumn column = c.getColumns().get(1);
+        assertThat(column.getColumnName().getName(), is("value"));
+        assertThat(column.getType(), is(new SQLiteType(new SQLiteSimpleName("text"), null, null)));
+        assertThat(column.isPrimaryKey(), is(false));
+        assertThat(column.isUnique(), is(false));
+        assertThat(column.isNullable(), is(true));
     }
+
+    @Test
+    public void columnConstraints() {
+        SQLiteCreateTableStatement c = SQLiteParserUtils.parseCreateTableStatement(
+                "create table foo (foo not null unique, bar null collate nocase)");
+
+        SQLiteColumn foo = c.getColumns().get(0);
+        assertThat(foo.getColumnName().getName(), is("foo"));
+        assertThat(foo.isPrimaryKey(), is(false));
+        assertThat(foo.isUnique(), is(true));
+        assertThat(foo.isNullable(), is(false));
+
+        SQLiteColumn bar = c.getColumns().get(1);
+        assertThat(bar.getColumnName().getName(), is("bar"));
+        assertThat(bar.isPrimaryKey(), is(false));
+        assertThat(bar.isUnique(), is(false));
+        assertThat(bar.isNullable(), is(true));
+        assertThat(bar.getCollate(), is(new SQLiteSimpleName("nocase")));
+    }
+
 
     @Test
     public void columnWithoutType() {

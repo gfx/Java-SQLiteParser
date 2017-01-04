@@ -9,6 +9,14 @@ public class SQLiteTokenList {
 
     public final List<SQLiteToken> tokens = new ArrayList<>();
 
+
+    public SQLiteTokenList() {
+    }
+
+    public SQLiteTokenList(Token token) {
+        add(token);
+    }
+
     public void add(Token token) {
         tokens.add(SQLiteToken.create(token));
     }
@@ -24,6 +32,22 @@ public class SQLiteTokenList {
             }
         }
         return false;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder s = new StringBuilder();
+
+        for (SQLiteToken token : tokens) {
+            s.append(token);
+            s.append(" ");
+        }
+
+        if (!tokens.isEmpty()) {
+            s.setLength(s.length() - " ".length());
+        }
+
+        return s.toString();
     }
 
     @Override
