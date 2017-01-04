@@ -225,19 +225,30 @@ SQLiteCreateTableStatement createTableStatement(): {
 
     SQLiteName tableName;
     SQLiteColumn column;
+    SQLiteTableConstraint constraint;
 } {
-    <K_CREATE> (<K_TEMP> | <K_TEMPORARY>)? <K_TABLE>
-    (<K_IF> <K_NOT> <K_EXISTS>)?
+    <K_CREATE> [<K_TEMP> | <K_TEMPORARY>]
+    <K_TABLE>
+    [<K_IF> <K_NOT> <K_EXISTS>]
     tableName=qualifiedTableName() {
-        statement.setTableName(tableName);
+        statement.tableName = tableName;
     }
     "("
         column=column() {
-            statement.addColumn(column);
+            statement.columns.add(column);
           }
-        ( ","
+        (
+            LOOKAHEAD("," column())
+             ","
             column=column() {
-                statement.addColumn(column);
+                statement.columns.add(column);
+            }
+        )*
+
+        (
+            ","
+            constraint=tableConstraint() {
+                statement.constraints.add(constraint);
             }
         )*
     ")"
@@ -316,6 +327,21 @@ SQLiteTokenList primaryKeyConstraint(): {
     }
 }
 
+SQLiteTableConstraint tableConstraint(): {
+    SQLiteName name;
+} {
+    [<K_CONSTRAINT> name=name()]
+    (
+        <K_PRIMARY> <K_KEY> "(" indexedColumn() ("," indexedColumn())* ")" conflictClause()
+        | <K_UNIQUE> "(" indexedColumn() ("," indexedColumn())* ")" conflictClause()
+        | <K_CHECK> "(" expr() ")"
+        | <K_FOREIGN> <K_KEY> "(" name() ("," name())* ")" foreignKeyClause()
+    )
+    {
+        return new SQLiteTableConstraint();
+    }
+}
+
 void conflictClause(): {
 } {
     (<K_ON> <K_CONFLICT> (<K_ROLLBACK> | <K_ABORT> | <K_FAIL> | <K_IGNORE> | <K_REPLACE>))?
@@ -333,6 +359,12 @@ void foreignKeyClause(): {
     [
          LOOKAHEAD(2) [<K_NOT>] <K_DEFERRABLE> [<K_INITIALLY> [<K_DEFERRED> | <K_IMMEDIATE>]]
     ]
+}
+
+void indexedColumn(): {
+
+} {
+    expr() [ <K_COLLATE> name() ] [ <K_ASC> | <K_DESC> ]
 }
 
 
